@@ -28,8 +28,8 @@
 			var args = [].slice.call(arguments, 1);
 			var listeners = this.listeners[event_name];
 			if(Array.isArray(listeners)){
-				for(var e=0;e<events.length;e++)
-					listeners[e].apply(this, args);
+				for(var i=0;i<listeners.length;i++)
+					listeners[i].apply(this, args);
 			}
 			return this;
 		}
@@ -66,25 +66,28 @@
 			return this;
 		};
 		if(!no_require){
+			// Only if node.js
 			this.command("load commands", function(input, callback){
 				var args = input.split(' '),
 					dir_path = args[0],
 					overwrite = false,
 					B = this;
 				
-				if(!args[0]) return false;
-			
-				if(args[1] && ["-o", "overwrite"].indexOf(args[1]) > -1)
+				if(["-o", "overwrite"].indexOf(args[0]) > -1 || !args[0]){
+					dir_path = "/commands"; // Default place to look for commands
 					overwrite = true;
-				if(dir_path.slice(-1) == "/")
-					dir_path = dir_path.slice(0,-1);
+				}
+				else if((args[1] && ["-o", "overwrite"].indexOf(args[1]) > -1))
+					overwrite = true;
+					
+				if(dir_path.slice(-1) == "/") dir_path = dir_path.slice(0,-1);
 				
 				if(!dir_path){
 					callback("Provide the path to a directory");
 					return true;
 				}
-
-				require('fs').readdir(dir_path, function(err, files){
+				console.log("Loading commands from "+__dirname+dir_path);
+				require('fs').readdir(__dirname+dir_path, function(err, files){
 					if(err) callback("Couldn't load directory: "+err);
 					else {
 						var added = [];
@@ -92,7 +95,7 @@
 							if(file.indexOf('.js')==file.length-'.js'.length){
 								file = file.slice(0, -3);
 								try{
-									var the_command = require("../"+dir_path+"/"+file);
+									var the_command = require("."+dir_path+"/"+file);
 								}catch(e){
 									B.emit('error', e)
 									return;
